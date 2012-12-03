@@ -1,10 +1,13 @@
 import socket
 import sys
+
 from thread import *
+from nimgame import Nimgame
+from player import Player
 
 host = ''
 port = 7777
-player_list = {}
+player_list = []
 
 try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,11 +41,21 @@ def gameThread(client_socket):
                 bye - exit the game server
                 """
                 client_socket.send(help_msg + "\nEnter a command")
+				
             elif command == "login":
-                client_socket.send("200 OK Enter your username.\n")
-                username = client_socket.recv(4096)
-                player_list[username] = "available"
-                client_socket.send("200 OK User registered\nEnter a command")
+				client_socket.send("200 OK Enter your username.\n")
+				username = client_socket.recv(4096)
+				taken = False
+				for player in player_list:
+					if player.username == username:
+						taken = True
+				if taken:
+					client_socket.send("400 ERROR Username taken\nEnter a command")
+				else:
+					new_player = Player(username, client_socket, "available")
+					player_list.append(new_player)
+					client_socket.send("200 OK User registered\nEnter a command")
+					
             else:
                 client_socket.send("400 ERROR Command not recognized.\nEnter a command")
 
