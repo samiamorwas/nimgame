@@ -2,42 +2,60 @@ import socket
 import sys
 from thread import *
 
-HOST = ''
-PORT = 7777
+host = ''
+port = 7777
+player_list = {}
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+except socket.error:
+    print 'Failed to create socket'
+    sys.exit()
+
 print 'Socket created'
 
 try:
-    s.bind((HOST, PORT))
-except socket.error, msg:
-    print 'Bind failed. Error code: ' + str(msg[0]) + ' Message ' + msg[1]
+    server_socket.bind((host, port))
+except socket.error:
+    print 'Failed to bind socket to port ' + str(port)
     sys.exit()
 
-print 'Socket bind complete'
-
-s.listen(10)
-print 'Socket now listening'
+server_socket.listen(5)
+print 'Now listening on port ' + str(port)
 
 
-def clientthread(conn):
+def gameThread(client_socket):
 
-    conn.send("Welcome to the server. Type something and hit enter\n.")
+    client_socket.send("Welcome to NimGame! Enter a command, or type 'help'.")
 
     while True:
-        data = conn.recv(1024)
-        reply = 'OK...' + data
-        if not data:
+        try:
+            command = client_socket.recv(4096)
+            if command == "help":
+                help_msg = """
+                login - allows you to log in with a chosen name
+                remove n s - removes n objects from set s
+                bye - exit the game server
+                """
+                client_socket.send(help_msg + "\nEnter a command")
+            elif command == "login":
+                client_socket.send("200 OK Enter your username.\n")
+                username = client_socket.recv(4096)
+                player_list[username] = "available"
+                client_socket.send("200 OK User registered\nEnter a command")
+            else:
+                client_socket.send("400 ERROR Command not recognized.\nEnter a command")
+
+        except socket.error:
+            print 'Client has disconnected'
             break
 
-        conn.sendall(reply)
+    client_socket.close()
 
-    conn.close()
-
-while 1:
-    conn, addr = s.accept()
+while True:
+    client_socket, addr = server_socket.accept()
     print 'Connected with ' + addr[0] + ':' + str(addr[1])
 
-    start_new_thread(clientthread, (conn,))
+    start_new_thread(gameThread, (client_socket,))
 
-s.close()
+server_socket.close()

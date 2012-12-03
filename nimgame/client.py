@@ -2,42 +2,29 @@ import socket
 import sys
 
 try:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-except socket.error, msg:
-    print 'Failed to create socket. Error code: '
-    + str(msg[0]) + 'Error message: ' + msg[1]
-    sys.exit()
-
-print 'Socket created'
-
-host = "www.google.com"
-port = 80
-
-try:
-    remote_ip = socket.gethostbyname(host)
-
-except socket.gaierror:
-    print 'Hostname could not be resolved. Exiting.'
-    sys.exit()
-
-print 'IP address of ' + host + ' is ' + remote_ip
-
-s.connect((remote_ip, port))
-
-print 'Socket connected to ' + host + ' on ip ' + remote_ip
-
-message = "GET / HTTP/1.1\r\n\r\n"
-
-try:
-    s.sendall(message)
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 except socket.error:
-    print 'Send failed'
+    print 'Failed to create socket.'
     sys.exit()
 
-print 'Message sent successfully'
+script, host, port = sys.argv
+port = int(port)
 
-reply = s.recv(4096)
+server_socket.connect((host, port))
+welcome_msg = server_socket.recv(4096)
+print welcome_msg
 
-print reply
+while True:
+    command = raw_input('>')
+    server_socket.send(command)
+    response = server_socket.recv(4096)
+    if "200 OK" in response:
+        response = response[7:]
+        print response
+    elif "400 ERROR" in response:
+        response = response[10:]
+        print response
+    else:
+        print response
 
-s.close()
+server_socket.close()
