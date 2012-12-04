@@ -62,8 +62,6 @@ def connectThread(client_socket):
                         player_list[0].make_busy()
                         player_list[1].make_busy()
                         startGame(game)
-                        for player in player_list:
-                            player.make_available()
                         continue
                     else:
                         client_socket.send(
