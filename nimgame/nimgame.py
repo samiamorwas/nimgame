@@ -3,9 +3,10 @@ import random
 
 class Nimgame:
 
-    def __init__(self, player1, player2):
+    def __init__(self, player1, player2, game_id):
         self.player1 = player1
         self.player2 = player2
+        self.game_id = game_id
         self.whose_turn = player1
         self.wait_player = player2
         self.num_sets = random.randint(3, 5)

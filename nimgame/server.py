@@ -1,13 +1,14 @@
 import socket
 import sys
+import serverstatus
 
 from thread import *
+from threading import RLock
 from nimgame import Nimgame
 from player import Player
 
-host = ''
-port = 7777
-player_list = []
+lock = RLock()
+current_player = ""
 
 try:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -18,13 +19,13 @@ except socket.error:
 print 'Socket created'
 
 try:
-    server_socket.bind((host, port))
+    server_socket.bind((serverstatus.host, serverstatus.port))
 except socket.error:
-    print 'Failed to bind socket to port ' + str(port)
+    print 'Failed to bind socket to port ' + str(serverstatus.port)
     sys.exit()
 
 server_socket.listen(5)
-print 'Now listening on port ' + str(port)
+print 'Now listening on port ' + str(serverstatus.port)
 
 
 def connectThread(client_socket):
@@ -47,25 +48,64 @@ def connectThread(client_socket):
                 client_socket.send("200 OK Enter your username.")
                 username = client_socket.recv(4096)
                 taken = False
-                for player in player_list:
+                for player in serverstatus.player_list:
                     if player.username == username:
                         taken = True
-
                 if taken:
                     client_socket.send(
                         "400 ER Username taken\nEnter a command")
                 else:
+                    lock.acquire()
                     new_player = Player(username, client_socket, "available")
-                    player_list.append(new_player)
-                    if len(player_list) == 2:
-                        game = Nimgame(player_list[0], player_list[1])
-                        player_list[0].make_busy()
-                        player_list[1].make_busy()
-                        startGame(game)
-                        continue
-                    else:
-                        client_socket.send(
-                        "201 WT User registered. Please wait")
+                    serverstatus.player_list.append(new_player)
+                    lock.release()
+                    current_player = username
+                    client_socket.send(
+                        "200 OK User registered.\nEnter a command")
+
+            elif command == "games":
+                response = "200 OK "
+                lock.acquire()
+                for game in serverstatus.game_list:
+                    response = response + "Game " + str(game.game_id) + " "
+                    response = response + game.player1.username + " "
+                    response = response + game.player2.username + "\n"
+                client_socket.send(response)
+                lock.release()
+
+            elif command == "who":
+                response = "200 OK "
+                lock.acquire()
+                for player in serverstatus.player_list:
+                    if player.status == "available":
+                        response = response + player.username + "\n"
+                client_socket.send(response)
+                lock.release()
+
+            elif command.startswith("play"):
+                opponent_name = command[5:]
+                opponent = None
+                for player in serverstatus.player_list:
+                    if player.username == opponent_name:
+                        if player.username != current_player:
+                            opponent = player
+
+                if opponent is None:
+                    client_socket.send(
+                        "400 ER Player does not exist\nEnter a command")
+
+                else:
+                    lock.acquire()
+                    for player in serverstatus.player_list:
+                        if player.username == current_player:
+                            game = Nimgame(
+                                player, opponent, serverstatus.next_id)
+                            serverstatus.next_id += 1
+                            serverstatus.game_list.append(game)
+                            player.make_busy()
+                            opponent.make_busy()
+                            lock.release()
+                            startGame(game)
 
             elif command == "bye":
                 client_socket.send("200 OK Goodbye!")
