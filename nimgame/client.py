@@ -20,11 +20,18 @@ while True:
         print message
 
     command = raw_input('>')
+    if command == "" or command is None:
+        continue
     server_socket.send(command)
     response = server_socket.recv(4096)
-    message = response[7:]
-    print message
-    if message == "Goodbye!":
-        sys.exit()
+    if response == "401 RS":
+        server_socket.send(command)
+        response = "201 WT"
+        continue
+    else:
+        message = response[7:]
+        print message
+        if message == "Goodbye!":
+            sys.exit()
 
 server_socket.close()

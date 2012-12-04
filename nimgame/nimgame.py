@@ -21,21 +21,16 @@ class Nimgame:
 
     def remove(self, setChoice, numItems):
         done = True
-        sets = self.set_dict.keys()
 
-        if numItems <= self.set_dict[setChoice] and setChoice in sets:
-            self.set_dict[setChoice] = self.set_dict[setChoice] - numItems
-            for i in range(1, self.num_sets + 1):
-                if self.set_dict[i] != 0:
-                    done = False
-            if done:
-                return "202 GO"
-            else:
-                self.changeTurn()
-                return "201 WT"
-
+        self.set_dict[setChoice] = self.set_dict[setChoice] - numItems
+        for i in range(1, self.num_sets + 1):
+            if self.set_dict[i] != 0:
+                done = False
+        if done:
+            return "202 GO"
         else:
-            return "400 ER"
+            self.changeTurn()
+            return "201 WT"
 
     def changeTurn(self):
         if self.whose_turn == self.player1:
