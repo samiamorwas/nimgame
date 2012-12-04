@@ -11,20 +11,20 @@ script, host, port = sys.argv
 port = int(port)
 
 server_socket.connect((host, port))
-welcome_msg = server_socket.recv(4096)
-print welcome_msg
+response = "201 WT"
 
 while True:
+    while "201 WT" in response:
+        response = server_socket.recv(4096)
+        message = response[7:]
+        print message
+
     command = raw_input('>')
     server_socket.send(command)
     response = server_socket.recv(4096)
-    if "200 OK" in response:
-        response = response[7:]
-        print response
-    elif "400 ERROR" in response:
-        response = response[10:]
-        print response
-    else:
-        print response
+    message = response[7:]
+    print message
+    if message == "Goodbye!":
+        sys.exit()
 
 server_socket.close()
